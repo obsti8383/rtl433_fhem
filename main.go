@@ -85,8 +85,8 @@ func main() {
 			if sensorReading.Model == "AcuriteRainGauge" {
 				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_rain", sensorReading.Rain)
 			} else if sensorReading.Model == "OSv1TemperatureSensor" {
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Sid)+"_temp", sensorReading.Temperature_C)
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Sid)+"_batt", sensorReading.Battery)
+				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Sid)+"_"+strconv.Itoa(sensorReading.Channel)+"_temp", sensorReading.Temperature_C)
+				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Sid)+"_"+strconv.Itoa(sensorReading.Channel)+"_batt", sensorReading.Battery)
 			} else if sensorReading.Model == "inFactorysensor" {
 				tempCelsius := (sensorReading.Temperature_F - 32) / 1.8
 				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_temp", tempCelsius)
