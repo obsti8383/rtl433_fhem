@@ -64,7 +64,6 @@ func main() {
 		}
 
 		// Read rtl433 output
-		var sensorReading WeatherSensor
 		/*file, err := os.Open("rtl433.out")
 		if err != nil {
 			panic(err)
@@ -73,7 +72,10 @@ func main() {
 
 		//scanner := bufio.NewScanner(file)
 		scanner := bufio.NewScanner(strings.NewReader(output))
+		var lastSensorReading, sensorReading WeatherSensor
 		for scanner.Scan() {
+			lastSensorReading = sensorReading
+
 			line := scanner.Text()
 			//fmt.Println(line)
 			// Save JSON to Post struct
@@ -84,24 +86,34 @@ func main() {
 			sensorReading.Model = StripSpaces(sensorReading.Model)
 			//fmt.Println(sensorReading.Model)
 
-			if sensorReading.Model == "AcuriteRainGauge" {
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_rain", sensorReading.Rain)
-			} else if sensorReading.Model == "OSv1TemperatureSensor" {
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Sid)+"_"+strconv.Itoa(sensorReading.Channel)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Sid)+"_"+strconv.Itoa(sensorReading.Channel)+"_batt", sensorReading.Battery)
-			} else if sensorReading.Model == "inFactorysensor" {
-				tempCelsius := (sensorReading.Temperature_F - 32) / 1.8
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_temp", math.Round(tempCelsius*10)/10)
-			} else if strings.HasPrefix(sensorReading.Model, "Inovalley") {
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_rain", sensorReading.Rain)
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
-			} else if sensorReading.Model == "AlectoV1TemperatureSensor" {
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_batt", sensorReading.Battery)
-			} else if strings.HasPrefix(sensorReading.Model, "TFA") {
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_batt", sensorReading.Battery)
-				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_humid", sensorReading.Humidity)
+			if sensorReading.Model == lastSensorReading.Model &&
+				sensorReading.Id == lastSensorReading.Id &&
+				sensorReading.Sid == lastSensorReading.Sid &&
+				sensorReading.Channel == lastSensorReading.Channel &&
+				sensorReading.Temperature_C == lastSensorReading.Temperature_C &&
+				sensorReading.Temperature_F == lastSensorReading.Temperature_F &&
+				sensorReading.Rain == lastSensorReading.Rain {
+				// do nothing (ignore double readings)
+			} else {
+				if sensorReading.Model == "AcuriteRainGauge" {
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_rain", sensorReading.Rain)
+				} else if sensorReading.Model == "OSv1TemperatureSensor" {
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Sid)+"_"+strconv.Itoa(sensorReading.Channel)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Sid)+"_"+strconv.Itoa(sensorReading.Channel)+"_batt", sensorReading.Battery)
+				} else if sensorReading.Model == "inFactorysensor" {
+					tempCelsius := (sensorReading.Temperature_F - 32) / 1.8
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_temp", math.Round(tempCelsius*10)/10)
+				} else if strings.HasPrefix(sensorReading.Model, "Inovalley") {
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_rain", sensorReading.Rain)
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
+				} else if sensorReading.Model == "AlectoV1TemperatureSensor" {
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_batt", sensorReading.Battery)
+				} else if strings.HasPrefix(sensorReading.Model, "TFA") {
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_batt", sensorReading.Battery)
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_humid", sensorReading.Humidity)
+				}
 			}
 		}
 
