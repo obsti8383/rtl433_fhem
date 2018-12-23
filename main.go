@@ -31,6 +31,7 @@ type WeatherSensor struct {
 	Temperature_C float64
 	Rain          float64
 	Temperature_F float64
+	Humidity      int
 }
 
 //define a function for the default message handler
@@ -46,7 +47,7 @@ func main() {
 
 	//create a ClientOptions struct setting the broker address, clientid, turn
 	//off trace output and set the default message handler
-	opts := MQTT.NewClientOptions().AddBroker("tcp://mqttserver.internal:<1883")
+	opts := MQTT.NewClientOptions().AddBroker("tcp://mqttserver.internal:1883")
 	opts.SetClientID(clientId)
 	opts.SetDefaultPublishHandler(publishHandler)
 
@@ -91,12 +92,16 @@ func main() {
 			} else if sensorReading.Model == "inFactorysensor" {
 				tempCelsius := (sensorReading.Temperature_F - 32) / 1.8
 				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_temp", math.Round(tempCelsius*10)/10)
-			} else if sensorReading.Model == "Inovalleykw9015b" {
+			} else if strings.HasPrefix(sensorReading.Model, "Inovalley") {
 				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_rain", sensorReading.Rain)
 				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
 			} else if sensorReading.Model == "AlectoV1TemperatureSensor" {
 				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
 				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_batt", sensorReading.Battery)
+			} else if strings.HasPrefix(sensorReading.Model, "TFA") {
+				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
+				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_batt", sensorReading.Battery)
+				sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_humid", sensorReading.Humidity)
 			}
 		}
 
@@ -117,7 +122,7 @@ func sendMQTT(client MQTT.Client, uri string, message interface{}) {
 		token = client.Publish(uri, 0, false, m)
 	case float64, float32, []float64, []float32:
 		token = client.Publish(uri, 0, false, fmt.Sprintf("%.1f", m))
-	case uint, uint64, uint32:
+	case uint, uint64, uint32, int, int32, int64:
 		token = client.Publish(uri, 0, false, fmt.Sprintf("%d", m))
 	}
 	token.Wait()
