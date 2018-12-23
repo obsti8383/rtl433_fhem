@@ -46,7 +46,7 @@ func main() {
 
 	//create a ClientOptions struct setting the broker address, clientid, turn
 	//off trace output and set the default message handler
-	opts := MQTT.NewClientOptions().AddBroker("tcp://mqttserver.internal:1883")
+	opts := MQTT.NewClientOptions().AddBroker("tcp://mqttserver.internal:<1883")
 	opts.SetClientID(clientId)
 	opts.SetDefaultPublishHandler(publishHandler)
 
