@@ -162,7 +162,7 @@ func executeCommand(cmd string, args ...string) (string, error) {
 
 // runRTL433 runs rtl_433 for 15 seconds
 func runRTL433() (string, error) {
-	output, err := executeCommand("rtl_433", "-G", "-Fjson", "-T 60")
+	output, err := executeCommand("rtl_433", "-Fjson", "-T 60") // -G
 	fmt.Println(output)
 	return output, err
 }
