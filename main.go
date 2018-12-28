@@ -26,6 +26,7 @@ type WeatherSensor struct {
 	Brand         string
 	Sid           int
 	Id            int
+	Rc            int
 	Channel       int
 	Battery       string
 	Temperature_C float64
@@ -41,13 +42,19 @@ var publishHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Messa
 }
 
 func main() {
+	if len(os.Args) < 2 {
+		panic("No argument for mqttserver")
+	}
+	argsWithoutProg := os.Args[1:]
+	mqttserver := argsWithoutProg[0]
+
 	hostname, _ := os.Hostname()
 	clientId := "rtl433_2_" + hostname
 	publishUri := "rtl433/" + hostname
 
 	//create a ClientOptions struct setting the broker address, clientid, turn
 	//off trace output and set the default message handler
-	opts := MQTT.NewClientOptions().AddBroker("tcp://mqttserver.internal:1883")
+	opts := MQTT.NewClientOptions().AddBroker("tcp://" + mqttserver)
 	opts.SetClientID(clientId)
 	opts.SetDefaultPublishHandler(publishHandler)
 
@@ -72,13 +79,14 @@ func main() {
 
 		//scanner := bufio.NewScanner(file)
 		scanner := bufio.NewScanner(strings.NewReader(output))
-		var lastSensorReading, sensorReading WeatherSensor
+		var lastSensorReading, sensorReading *WeatherSensor
 		for scanner.Scan() {
 			lastSensorReading = sensorReading
 
 			line := scanner.Text()
 			//fmt.Println(line)
 			// Save JSON to Post struct
+			sensorReading = new(WeatherSensor)
 			if err := json.Unmarshal([]byte(line), &sensorReading); err != nil {
 				//fmt.Println(err)
 			}
@@ -86,7 +94,8 @@ func main() {
 			sensorReading.Model = StripSpaces(sensorReading.Model)
 			//fmt.Println(sensorReading.Model)
 
-			if sensorReading.Model == lastSensorReading.Model &&
+			if sensorReading != nil && lastSensorReading != nil &&
+				sensorReading.Model == lastSensorReading.Model &&
 				sensorReading.Id == lastSensorReading.Id &&
 				sensorReading.Sid == lastSensorReading.Sid &&
 				sensorReading.Channel == lastSensorReading.Channel &&
@@ -113,7 +122,11 @@ func main() {
 					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
 					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_batt", sensorReading.Battery)
 					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Id)+"_"+strconv.Itoa(sensorReading.Channel)+"_humid", sensorReading.Humidity)
+				} else if strings.HasPrefix(sensorReading.Model, "HIDEKITemperature") {
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Rc)+"_"+strconv.Itoa(sensorReading.Channel)+"_temp", math.Round(sensorReading.Temperature_C*10)/10)
+					sendMQTT(c, publishUri+"/"+sensorReading.Model+"_"+strconv.Itoa(sensorReading.Rc)+"_"+strconv.Itoa(sensorReading.Channel)+"_batt", sensorReading.Battery)
 				}
+
 			}
 		}
 
